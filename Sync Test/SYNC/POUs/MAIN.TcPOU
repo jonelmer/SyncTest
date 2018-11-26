@@ -1,0 +1,216 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.10">
+  <POU Name="MAIN" Id="{a5509ff2-383d-4902-af38-fb16f957d213}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	
+	tPulse AT %I*: T_DCTIME64;
+	tPrev : T_DCTIME64;
+	tPrevPulse : T_DCTIME64;
+	tDiff : T_DCTIME64;
+	
+	SyncMaster : AXIS_REF;
+	SyncSlave : AXIS_REF;
+
+	XFC_Position : XFC_PositionAtTime;
+	
+	fPosition : LREAL;
+	fPositionMod : LREAL;
+	fPrevPosition : LREAL;
+	
+	fPositionError : LREAL;
+	fPositionSum : LREAL;
+	
+	fSpeedError : LREAL;
+	fSpeedAct : LREAL;
+	fSpeed : LREAL := 360*14;
+	
+	fPositionDiff : LREAL;
+	
+	Master : AxisController;
+	Slave : CamInController;
+	
+	mcMoveVelo : MC_MoveVelocity;
+	
+	iState : UINT;
+	bPulse : BOOL;
+	
+	fSpeed_Kp : LREAL := 0.1;
+	
+	fPosition_Kp : LREAL := 0.1;
+	fPosition_Ki : LREAL := 0.001;
+	
+	fPositionControlThreshold: LREAL := 10;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Master(Axis:=SyncMaster);
+Master.bExecute:=FALSE;
+
+Slave(Axis:=SyncSlave, Master:=SyncMaster);
+Slave.bExecute:=FALSE;
+
+mcMoveVelo(Axis:=SyncMaster);
+mcMoveVelo.Execute := FALSE;
+
+CASE iState OF
+	000:
+		// Compose a camming table?
+		
+		iState := 100;
+
+	100:
+		// Set up the master axis
+		Master.fSpeed:=0;
+		Master.bExecute := TRUE;
+		iState := 101;
+	101:
+		IF Master.bDone THEN
+			iState:= 200;
+		END_IF
+		
+	200:
+		// Check for new pulse
+		IF tPulse <> tPrev THEN
+			// There's a new pusle
+			fPrevPosition := fPosition;
+			tPrevPulse := tPrev;
+			bPulse := TRUE;
+		
+			// Get the position at the pulse
+			XFC_Position(DcTime:=ULINT_TO_UDINT(tPulse), Axis:= SyncMaster);
+			fPosition := XFC_Position.Position;
+			fPositionMod := MODULO(XFC_Position.Position+180, 360)-180;
+			
+			// Calculate the distance moved
+			fPositionDiff := fPosition-fPrevPosition;
+			
+			// Calculate the time between pulses
+			tDiff := tPulse - tPrevPulse;
+			
+			// Calculate the actual speed
+			fSpeedAct := fPositionDiff/tDiff*1E9;
+			
+			// Calculate the speed difference - with respect to the expected 360degrees
+			fSpeedError := -(fPositionDiff-360)/tDiff*1E9;
+			
+			// Implement the speed PI controller
+			fSpeed := fSpeed + fSpeedError*fSpeed_Kp;
+			
+			// Implement the position PI controller
+			fPositionError := MODULO(fPosition+180, 360)-180;
+			fPositionSum := fPositionSum + fPositionError;
+			
+			// Only activate position control if the speed control is good
+			IF ABS(fSpeedError) < fPositionControlThreshold THEN
+				fSpeed := fSpeed - fPositionError * fPosition_Kp;
+				fSpeed := fSpeed - fPositionSum * fPosition_Ki;
+			ELSE
+				fPositionSum := 0;
+			END_IF
+			
+			IF fSpeed > 5700 THEN
+				fSpeed := 5700;
+			END_IF
+			
+			// Update the velocity
+			mcMoveVelo.Execute:= TRUE;
+			mcMoveVelo.Velocity:= fSpeed;
+			
+			(*// Activate slave camming?
+			IF NOT Slave.bDone THEN
+				Slave.bExecute:=TRUE;
+			END_IF*)
+		
+		ELSE
+			bPulse := FALSE;
+		END_IF
+		
+		tPrev := tPulse;
+			
+END_CASE
+
+
+
+
+
+
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="484" Count="0" />
+      <LineId Id="618" Count="0" />
+      <LineId Id="724" Count="1" />
+      <LineId Id="723" Count="0" />
+      <LineId Id="587" Count="0" />
+      <LineId Id="586" Count="0" />
+      <LineId Id="588" Count="0" />
+      <LineId Id="486" Count="0" />
+      <LineId Id="451" Count="0" />
+      <LineId Id="488" Count="0" />
+      <LineId Id="678" Count="0" />
+      <LineId Id="675" Count="0" />
+      <LineId Id="679" Count="0" />
+      <LineId Id="677" Count="0" />
+      <LineId Id="674" Count="0" />
+      <LineId Id="489" Count="0" />
+      <LineId Id="557" Count="0" />
+      <LineId Id="490" Count="0" />
+      <LineId Id="719" Count="0" />
+      <LineId Id="493" Count="0" />
+      <LineId Id="721" Count="0" />
+      <LineId Id="495" Count="1" />
+      <LineId Id="500" Count="0" />
+      <LineId Id="453" Count="0" />
+      <LineId Id="536" Count="0" />
+      <LineId Id="531" Count="2" />
+      <LineId Id="553" Count="0" />
+      <LineId Id="576" Count="0" />
+      <LineId Id="593" Count="0" />
+      <LineId Id="456" Count="2" />
+      <LineId Id="598" Count="0" />
+      <LineId Id="522" Count="0" />
+      <LineId Id="508" Count="1" />
+      <LineId Id="545" Count="2" />
+      <LineId Id="555" Count="0" />
+      <LineId Id="548" Count="0" />
+      <LineId Id="543" Count="0" />
+      <LineId Id="567" Count="0" />
+      <LineId Id="604" Count="0" />
+      <LineId Id="602" Count="1" />
+      <LineId Id="580" Count="0" />
+      <LineId Id="740" Count="0" />
+      <LineId Id="610" Count="0" />
+      <LineId Id="616" Count="0" />
+      <LineId Id="659" Count="0" />
+      <LineId Id="611" Count="0" />
+      <LineId Id="663" Count="0" />
+      <LineId Id="667" Count="0" />
+      <LineId Id="662" Count="0" />
+      <LineId Id="615" Count="0" />
+      <LineId Id="614" Count="0" />
+      <LineId Id="665" Count="1" />
+      <LineId Id="664" Count="0" />
+      <LineId Id="668" Count="3" />
+      <LineId Id="596" Count="0" />
+      <LineId Id="617" Count="0" />
+      <LineId Id="568" Count="0" />
+      <LineId Id="574" Count="0" />
+      <LineId Id="712" Count="0" />
+      <LineId Id="716" Count="0" />
+      <LineId Id="714" Count="0" />
+      <LineId Id="726" Count="1" />
+      <LineId Id="589" Count="0" />
+      <LineId Id="591" Count="1" />
+      <LineId Id="590" Count="0" />
+      <LineId Id="573" Count="0" />
+      <LineId Id="514" Count="0" />
+      <LineId Id="470" Count="10" />
+      <LineId Id="24" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

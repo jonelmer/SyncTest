@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.10">
+  <POU Name="AxisController" Id="{03a3ed9a-8b31-4918-82ec-f19698baf36a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK AxisController
+VAR_INPUT
+	bExecute: BOOL;
+	fSpeed : LREAL := 360;
+END_VAR
+VAR
+	mcReset			: MC_Reset;
+	mcPower			: MC_Power;
+	mcMoveVelo		: MC_MoveVelocity;
+	mcStop			: MC_Stop;
+	
+	iState: UINT;;
+END_VAR
+VAR_IN_OUT
+	Axis : AXIS_REF;
+END_VAR
+VAR_OUTPUT
+	bDone : BOOL;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[mcReset(Axis:=Axis);
+mcReset.Execute := FALSE;
+
+mcPower(Axis:=Axis, Enable:=TRUE, Enable_Positive:=TRUE, Enable_Negative:=TRUE);
+
+mcMoveVelo(Axis:=Axis);
+mcMoveVelo.Execute := FALSE;
+
+CASE iState OF
+	0:		
+		IF bExecute THEN
+			iState:= 10;
+		END_IF
+		
+	10: 
+		// Reset the axis
+		mcReset.Execute:=TRUE;
+		iState := 20;
+		bDone:= FALSE;
+	
+	20: 
+		// Wait for reset to complete
+		IF McReset.Done THEN
+			iState := 30;
+		ELSIF McReset.Error THEN
+			iState := 999;
+		END_IF
+	
+	30:
+		// Set the power!
+		IF McPower.Status THEN
+			iState := 40;
+		END_IF
+		
+	40: 
+		// Move at constant velo
+		mcMoveVelo.Execute := TRUE;
+		mcMoveVelo.Velocity:=fSpeed;
+		
+		iState:= 50;
+	
+	50: 
+		// Done.
+		IF mcMoveVelo.InVelocity THEN
+			bDone := TRUE;
+			iState := 0;
+		END_IF
+		
+END_CASE
+	]]></ST>
+    </Implementation>
+    <LineIds Name="AxisController">
+      <LineId Id="66" Count="0" />
+      <LineId Id="147" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="17" Count="4" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="22" Count="19" />
+      <LineId Id="43" Count="2" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="68" Count="2" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

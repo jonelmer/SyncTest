@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.10">
+  <POU Name="MODULO" Id="{a405c42f-68fb-47d3-879d-de49f61e9ee1}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION MODULO : LREAL
+VAR_INPUT
+	fValue : LREAL;
+	fDenom : LREAL := 360;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[MODULO := fValue - (TRUNC(fValue / fDenom) * fDenom);]]></ST>
+    </Implementation>
+    <LineIds Name="MODULO">
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

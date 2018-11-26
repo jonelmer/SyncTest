@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TcSmItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmItem" TcSmVersion="1.0" TcVersion="3.1.4022.16" ClassName="CNestedPlcProjDef">
+	<DataTypes>
+		<DataType>
+			<Name GUID="{DA9F9032-AFD5-4C98-BC3B-A8F34D135B08}" Namespace="Tc2_EtherCAT" AutoDeleteType="true">T_DCTIME64</Name>
+			<BitSize>64</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-00000000000B}">ULINT</BaseType>
+		</DataType>
+	</DataTypes>
+	<Project GUID="{64877D2D-C8D7-4205-B7D4-244526ADD2DB}" Name="CLOCK" PrjFilePath="..\..\CLOCK\CLOCK.plcproj" TmcFilePath="..\..\CLOCK\CLOCK.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
+		<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="CLOCK\CLOCK.tmc">
+			<Name>CLOCK Instance</Name>
+			<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+			<Vars VarGrpType="2">
+				<Name>PlcTask Outputs</Name>
+				<Var>
+					<Name>MAIN.tPulse</Name>
+					<Type GUID="{DA9F9032-AFD5-4C98-BC3B-A8F34D135B08}" Namespace="Tc2_EtherCAT">T_DCTIME64</Type>
+				</Var>
+			</Vars>
+			<TaskPouOids>
+				<TaskPouOid Prio="20" OTCID="#x08502001"/>
+			</TaskPouOids>
+		</Instance>
+	</Project>
+	<Mappings>
+		<OwnerA Name="CLOCK Instance">
+			<OwnerB Name="TIPC^SYNC^SYNC Instance">
+				<Link VarA="PlcTask Outputs^MAIN.tPulse" VarB="Plc_Task_SYNC Inputs^MAIN.tPulse"/>
+			</OwnerB>
+		</OwnerA>
+	</Mappings>
+</TcSmItem>

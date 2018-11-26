@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.10">
+  <POU Name="BlockerController" Id="{a3b4c001-43df-45c1-8439-eb3dbf830848}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK BlockerController
+VAR_INPUT
+	bExecute: BOOL;
+	fSpeed : LREAL := 360;
+	
+	bPulse : BOOL;
+	
+	iHi : UINT := 1;
+	iLo : UINT := 1;
+END_VAR
+VAR
+	mcReset			: MC_Reset;
+	mcPower			: MC_Power;
+	mcStop			: MC_Stop;
+	mcCamIn         : MC_CamIn;
+	mcCamOut		: MC_CamOut;
+	
+	stCamInOptions  : ST_CamInOptions;
+	stCamOutOptions : ST_CamOutOptions;
+	
+	iState: UINT;
+	
+	iCounter : UINT;
+END_VAR
+VAR_IN_OUT
+	Axis : AXIS_REF;
+	Master : AXIS_REF;
+END_VAR
+VAR_OUTPUT
+	bRunning : BOOL;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[mcReset(Axis:=Axis);
+mcReset.Execute := FALSE;
+
+mcPower(Axis:=Axis, Enable:=TRUE, Enable_Positive:=TRUE, Enable_Negative:=TRUE);
+
+mcCamIn(Slave:=Axis, Master:= Master, Options:= stCamInOptions);
+mcCamIn.Execute:=FALSE;
+
+mcCamOut(Slave:=Axis, Options:= stCamOutOptions);
+mcCamOut.Execute:=FALSE;
+
+CASE iState OF
+	0:	
+		IF bExecute THEN
+			iState:= 10;
+		END_IF
+		bRunning := FALSE;
+		
+	10: 
+		// Reset the axis
+		mcReset.Execute:=TRUE;
+		iState := 20;
+	
+	20: 
+		// Wait for reset to complete
+		IF McReset.Done THEN
+			iState := 30;
+		ELSIF McReset.Error THEN
+			iState := 999;
+		END_IF
+	
+	30:
+		// Set the power!
+		IF McPower.Status THEN
+			iState := 40;
+			bRunning := TRUE;
+		END_IF
+		
+	40:
+		// Cam in
+		mcCamIn.Execute:= TRUE;
+		mcCamIn.SlaveScaling:= 1; 
+		mcCamIn.CamTableID:= 1;
+		
+		stCamInOptions.ActivationMode:= MC_CAMACTIVATION_NEXTCYCLE;
+		
+		iState:= 50;
+	
+	50: 
+		// Cam out
+		IF mcCamIn.InSync THEN
+			mcCamOut.Execute:=TRUE;
+			iState := 60;
+		END_IF
+		
+	60:
+		// Count pulses
+		IF bPulse THEN
+			iCounter := iCounter + 1;
+		END_IF
+		
+		// Check if hi pulse count reached
+		IF iCounter < iHi THEN
+			iCounter := 0;
+			
+			iState:= 70;
+		END_IF
+		
+		
+END_CASE
+	]]></ST>
+    </Implementation>
+    <LineIds Name="BlockerController">
+      <LineId Id="66" Count="0" />
+      <LineId Id="149" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="174" Count="1" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="17" Count="17" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="35" Count="3" />
+      <LineId Id="155" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="43" Count="2" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="165" Count="2" />
+      <LineId Id="170" Count="1" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="195" Count="1" />
+      <LineId Id="193" Count="1" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="68" Count="2" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
